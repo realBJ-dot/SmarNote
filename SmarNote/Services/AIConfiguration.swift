@@ -50,10 +50,28 @@ class AIConfiguration: ObservableObject {
     
     var apiKey: String {
         get {
+            // For production, use Keychain storage
+            if SecureConfiguration.shared.isProduction {
+                return SecureConfiguration.shared.retrieveAPIKey() ?? ""
+            }
+            
+            // For development, check environment variable first, then UserDefaults
+            #if DEBUG
+            if let envKey = ProcessInfo.processInfo.environment["GROQ_API_KEY"] {
+                return envKey
+            }
+            #endif
+            
             return UserDefaults.standard.string(forKey: apiKeyKey) ?? ""
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: apiKeyKey)
+            // Store in Keychain for production
+            if SecureConfiguration.shared.isProduction {
+                _ = SecureConfiguration.shared.storeAPIKey(newValue)
+            } else {
+                // Use UserDefaults for development
+                UserDefaults.standard.set(newValue, forKey: apiKeyKey)
+            }
             checkAPIKeyStatus()
         }
     }
@@ -79,13 +97,20 @@ class AIConfiguration: ObservableObject {
     }
     
     func clearAPIKey() {
-        UserDefaults.standard.removeObject(forKey: apiKeyKey)
+        // Clear from both storage methods
+        if SecureConfiguration.shared.isProduction {
+            _ = SecureConfiguration.shared.deleteAPIKey()
+        } else {
+            UserDefaults.standard.removeObject(forKey: apiKeyKey)
+        }
         checkAPIKeyStatus()
     }
     
     // For development - you can set your API key here
     func setDevelopmentAPIKey() {
-        apiKey = "***REMOVED***"
+        // TODO: Set your development API key here for testing
+        // apiKey = "your-development-api-key-here"
+        print("Development API key not configured. Please add your key to this function for testing.")
     }
 }
 

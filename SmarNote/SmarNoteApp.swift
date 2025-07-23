@@ -12,6 +12,7 @@ struct SmarNoteApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(SharedDataManager.shared)
         }
     }
 }
